@@ -141,7 +141,6 @@ jobs:
     - name: Create & configure ParaView build directory
       shell: cmd
       run: |
-        # workaround for NSIS long path issue...
         cd ..
         mkdir b
         cd b
