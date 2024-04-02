@@ -1,17 +1,5 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkVRMLExporter.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkVRMLExporter.h"
 
 #include "vtkAssemblyNode.h"
@@ -40,6 +28,7 @@
 
 #include <limits>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 // For C format strings
@@ -47,8 +36,6 @@ constexpr int max_double_digits = std::numeric_limits<double>::max_digits10;
 }
 
 vtkStandardNewMacro(vtkVRMLExporter);
-
-vtkPolyData *exportPolyData_ = NULL;
 
 vtkVRMLExporter::vtkVRMLExporter()
 {
@@ -77,8 +64,8 @@ void vtkVRMLExporter::WriteData()
   vtkActor *anActor, *aPart;
   vtkLightCollection* lc;
   vtkLight* aLight;
-  // vtkCamera* cam;
-  // double* tempd;
+  vtkCamera* cam;
+  double* tempd;
   FILE* fp;
 
   // make sure the user specified a FileName or FilePointer
@@ -133,31 +120,31 @@ void vtkVRMLExporter::WriteData()
   // End of Background
 
   // do the camera
-  // cam = ren->GetActiveCamera();
-  // fprintf(fp, "    Viewpoint\n      {\n      fieldOfView %f\n",
-  //   cam->GetViewAngle() * vtkMath::Pi() / 180.0);
-  // fprintf(fp, "      position %f %f %f\n", cam->GetPosition()[0], cam->GetPosition()[1],
-  //   cam->GetPosition()[2]);
-  // fprintf(fp, "      description \"Default View\"\n");
-  // tempd = cam->GetOrientationWXYZ();
-  // fprintf(fp, "      orientation %.*g %.*g %.*g %.*g\n      }\n", max_double_digits, tempd[1],
-  //   max_double_digits, tempd[2], max_double_digits, tempd[3], max_double_digits,
-  //   tempd[0] * vtkMath::Pi() / 180.0);
+  cam = ren->GetActiveCamera();
+  fprintf(fp, "    Viewpoint\n      {\n      fieldOfView %f\n",
+    cam->GetViewAngle() * vtkMath::Pi() / 180.0);
+  fprintf(fp, "      position %f %f %f\n", cam->GetPosition()[0], cam->GetPosition()[1],
+    cam->GetPosition()[2]);
+  fprintf(fp, "      description \"Default View\"\n");
+  tempd = cam->GetOrientationWXYZ();
+  fprintf(fp, "      orientation %.*g %.*g %.*g %.*g\n      }\n", max_double_digits, tempd[1],
+    max_double_digits, tempd[2], max_double_digits, tempd[3], max_double_digits,
+    tempd[0] * vtkMath::Pi() / 180.0);
 
   // do the lights first the ambient then the others
-  // fprintf(
-  //   fp, "    NavigationInfo {\n      type [\"EXAMINE\",\"FLY\"]\n      speed %f\n", this->Speed);
-  // if (ren->GetLights()->GetNumberOfItems() == 0)
-  // {
-  //   fprintf(fp, "      headlight TRUE}\n\n");
-  // }
-  // else
-  // {
-  //   fprintf(fp, "      headlight FALSE}\n\n");
-  // }
-  // fprintf(fp, "    DirectionalLight { ambientIntensity 1 intensity 0 # ambient light\n");
-  // fprintf(fp, "      color %f %f %f }\n\n", ren->GetAmbient()[0], ren->GetAmbient()[1],
-  //   ren->GetAmbient()[2]);
+  fprintf(
+    fp, "    NavigationInfo {\n      type [\"EXAMINE\",\"FLY\"]\n      speed %f\n", this->Speed);
+  if (ren->GetLights()->GetNumberOfItems() == 0)
+  {
+    fprintf(fp, "      headlight TRUE}\n\n");
+  }
+  else
+  {
+    fprintf(fp, "      headlight FALSE}\n\n");
+  }
+  fprintf(fp, "    DirectionalLight { ambientIntensity 1 intensity 0 # ambient light\n");
+  fprintf(fp, "      color %f %f %f }\n\n", ren->GetAmbient()[0], ren->GetAmbient()[1],
+    ren->GetAmbient()[2]);
 
   // make sure we have a default light
   // if we don't then use a headlight
@@ -238,9 +225,6 @@ void vtkVRMLExporter::WriteALight(vtkLight* aLight, FILE* fp)
 
 void vtkVRMLExporter::WriteAnActor(vtkActor* anActor, FILE* fp)
 {
-
-  printf("[vtkVRMLExporter] Using TTK fix for VRML export...\n");
-
   vtkSmartPointer<vtkPolyData> pd;
   vtkPointData* pntData;
   vtkPoints* points;
@@ -321,10 +305,6 @@ void vtkVRMLExporter::WriteAnActor(vtkActor* anActor, FILE* fp)
     tempd[1], max_double_digits, tempd[2]);
   fprintf(fp, "      children [\n");
   trans->Delete();
-
-  // BUG fix
-  exportPolyData_ = static_cast<vtkPolyData *>(pd);
-  // end of BUG fix
 
   pm = vtkPolyDataMapper::New();
   pm->SetInputData(pd);
@@ -732,23 +712,6 @@ void vtkVRMLExporter::WritePointData(vtkPoints* points, vtkDataArray* normals,
     fprintf(fp, "          }\n");
   }
 
-  // BUG fix here.
-  if(exportPolyData_){
-    fprintf(fp,"          texCoordIndex[\n");
-    vtkCellArray *cells = exportPolyData_->GetPolys();
-    vtkIdType npts = 0;
-    vtkIdType const *indx = NULL;
-    for(cells->InitTraversal(); cells->GetNextCell(npts, indx);){
-      fprintf(fp,"            ");
-      for(int i = 0; i < npts; i++){
-        fprintf(fp, "%i, ", static_cast<int>(indx[i]));
-      }
-      fprintf(fp, "-1,\n");
-    }
-    fprintf(fp,"          ]\n");
-  }
-  // end of BUG fix here.
-
   // write out the point data
   if (colors)
   {
@@ -780,3 +743,4 @@ void vtkVRMLExporter::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Speed: " << this->Speed << "\n";
 }
+VTK_ABI_NAMESPACE_END

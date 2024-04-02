@@ -1,17 +1,6 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkAppendRectilinearGrid.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+// SPDX-FileCopyrightText: Copyright (c) Kitware Inc.
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #include "vtkAppendRectilinearGrid.h"
 
 #include "vtkArrayIteratorIncludes.h"
@@ -172,8 +161,8 @@ int vtkAppendRectilinearGrid::RequestData(vtkInformation* vtkNotUsed(request),
     input->GetExtent(inputExtent);
 
     this->CopyArray(output->GetXCoordinates(), outUpdateExt, input->GetXCoordinates(), inputExtent);
-    this->CopyArray(output->GetYCoordinates(), outUpdateExt, input->GetXCoordinates(), inputExtent);
-    this->CopyArray(output->GetZCoordinates(), outUpdateExt, input->GetXCoordinates(), inputExtent);
+    this->CopyArray(output->GetYCoordinates(), outUpdateExt, input->GetYCoordinates(), inputExtent);
+    this->CopyArray(output->GetZCoordinates(), outUpdateExt, input->GetZCoordinates(), inputExtent);
 
     for (int cc = 0; cc < output->GetPointData()->GetNumberOfArrays(); cc++)
     {
