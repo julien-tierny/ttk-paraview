@@ -140,6 +140,7 @@ jobs:
         cmake ^
           -DPARAVIEW_USE_QT=OFF ^
           -DPython3_ROOT_DIR="%CONDA_ROOT%" ^
+          -DCMAKE_AUTOUIC=OFF ^
           -DCMAKE_BUILD_TYPE=Release ^
           -G"Visual Studio 17 2022" ^
           %GITHUB_WORKSPACE%
