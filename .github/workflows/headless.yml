@@ -69,10 +69,18 @@ jobs:
   # macOS #
   # ----- #
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-12
+    env:
+      CCACHE_DIR: /Users/runner/work/ttk/.ccache
+      CCACHE_MAXSIZE: 200M
     steps:
     - uses: actions/checkout@v3
       name: Checkout TTK-ParaView source code
+
+    - name: Remove hosted Python
+      run: |
+        sudo rm -rf /Library/Frameworks/Python.framework/
+        sudo rm -rf /usr/local/Frameworks/Python.framework/
 
     - name: Install macOS dependencies
       run: |
