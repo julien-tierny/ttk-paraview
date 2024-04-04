@@ -77,6 +77,7 @@ jobs:
     - name: Install macOS dependencies
       run: |
         # ParaView dependencies
+        brew reinstall python@3.11
         brew install --cask xquartz
         brew install wget libomp ninja python open-mpi
 
