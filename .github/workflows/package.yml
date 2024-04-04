@@ -131,7 +131,7 @@ jobs:
     - name: Install dependencies with conda
       shell: bash
       run: |
-        conda install -c conda-forge qt-main
+        conda install -c conda-forge qt-main python=3.10
 
     - name: Remove hosted Python
       shell: bash
