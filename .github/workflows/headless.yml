@@ -27,7 +27,7 @@ jobs:
         sudo apt update
         # TTK-ParaView dependencies
         sudo apt install -y \
-          g++-11 \
+          g++-12 \
           libosmesa-dev \
           libopenmpi-dev \
           ninja-build \
