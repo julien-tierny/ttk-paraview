@@ -141,6 +141,7 @@ public:
     this->DPColorTextureObject = nullptr;
     this->PreserveViewport = false;
     this->PreserveGLState = false;
+    this->DepthMaskOverride = false;
 
     this->Partitions[0] = this->Partitions[1] = this->Partitions[2] = 1;
   }
@@ -473,6 +474,7 @@ public:
   bool NeedToInitializeResources;
   bool PreserveViewport;
   bool PreserveGLState;
+  bool DepthMaskOverride;
 
   vtkShaderProgram* ShaderProgram;
   vtkOpenGLShaderCache* ShaderCache;
@@ -508,7 +510,7 @@ public:
   vtkMultiVolume* MultiVolume = nullptr;
 
   std::vector<float> VolMatVec, InvMatVec, TexMatVec, InvTexMatVec, TexEyeMatVec, CellToPointVec,
-    TexMinVec, TexMaxVec, ScaleVec, BiasVec, StepVec, SpacingVec, RangeVec;
+    TexMinVec, TexMaxVec, EyePosVec, ScaleVec, BiasVec, StepVec, SpacingVec, RangeVec;
 };
 
 //------------------------------------------------------------------------------
@@ -1365,12 +1367,25 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CheckPropertyKeys(vtkVolume* 
   // Otherwise this breaks volume/translucent geo depth peeling.
   vtkInformation* volumeKeys = vol->GetPropertyKeys();
   this->PreserveGLState = false;
+  this->DepthMaskOverride = false;
   if (volumeKeys && volumeKeys->Has(vtkOpenGLActor::GLDepthMaskOverride()))
   {
+    // Give a chance to volumes to write to the depth buffer.
+    // A value of 0 keeps the depth mask disabled as set by vtkVolumeStateRAII.
+    // A value of 1 enables the depth mask and allows writing to the depth buffer.
+    // Any other value will prevent vtkVolumeStateRAII from changing the state.
     int override = volumeKeys->Get(vtkOpenGLActor::GLDepthMaskOverride());
-    if (override != 0 && override != 1)
+    switch (override)
     {
-      this->PreserveGLState = true;
+      case 0: // glDepthMask(GL_TRUE)
+        this->DepthMaskOverride = false;
+        break;
+      case 1: // glDepthMask(GL_FALSE)
+        this->DepthMaskOverride = true;
+        break;
+      default: // no-op
+        this->PreserveGLState = true;
+        break;
     }
   }
 
@@ -3244,6 +3259,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
     }
     vtkVolumeStateRAII glState(renWin->GetState(), this->Impl->PreserveGLState);
 
+    // Override the default depth mask value if the corresponding property key was specified.
+    if (this->Impl->DepthMaskOverride)
+    {
+      renWin->GetState()->vtkglDepthMask(GL_TRUE);
+    }
+
     if (this->Impl->ShaderRebuildNeeded(cam, vol, renderPassTime, ren))
     {
       this->Impl->LastProjectionParallel = cam->GetParallelProjection();
@@ -3358,6 +3379,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderWithDepthPass(
   vtkOpenGLRenderWindow* renWin = vtkOpenGLRenderWindow::SafeDownCast(ren->GetRenderWindow());
   vtkVolumeStateRAII glState(renWin->GetState(), this->PreserveGLState);
 
+  // Override the default depth mask value if the corresponding property key was specified.
+  if (this->DepthMaskOverride)
+  {
+    renWin->GetState()->vtkglDepthMask(GL_TRUE);
+  }
+
   if (this->Parent->RenderToImage)
   {
     this->SetupRenderToTexture(ren);
@@ -3406,10 +3433,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
   this->CellToPointVec.resize(numVolumes * 16, 0);
   this->TexMinVec.resize(numVolumes * 3, 0);
   this->TexMaxVec.resize(numVolumes * 3, 0);
+  this->EyePosVec.resize(numVolumes * 3, 0);
 
-  vtkNew<vtkMatrix4x4> dataToWorld, texToDataMat, texToViewMat, cellToPointMat;
+  vtkNew<vtkMatrix4x4> dataToWorld, dataToView, texToDataMat, texToViewMat, cellToPointMat;
   float defaultTexMin[3] = { 0.f, 0.f, 0.f };
   float defaultTexMax[3] = { 1.f, 1.f, 1.f };
+  float eyePos[3] = { 0.f, 0.f, 0.f };
 
   auto it = this->Parent->AssembledInputs.begin();
   for (int i = 0; i < numVolumes; i++)
@@ -3473,6 +3502,18 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
 
     // Volume matrices (dataset to world)
     dataToWorld->Transpose();
+
+    // Get the effective position of the eye in world coordinates for this
+    // volume (or the bbox).
+    // This multiply may look backwards, but dataToWorld and modelViewMat are
+    // both already transposed to send to OpenGL.
+    vtkMatrix4x4::Multiply4x4(dataToWorld.GetPointer(), modelViewMat, dataToView.GetPointer());
+    dataToView->Invert();
+    eyePos[0] = dataToView->GetElement(3, 0);
+    eyePos[1] = dataToView->GetElement(3, 1);
+    eyePos[2] = dataToView->GetElement(3, 2);
+    vtkInternal::CopyVector<float, 3>(eyePos, this->EyePosVec.data(), i * 3);
+
     vtkInternal::CopyMatrixToVector<vtkMatrix4x4, 4, 4>(
       dataToWorld.GetPointer(), this->VolMatVec.data(), vecOffset);
 
@@ -3517,6 +3558,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
     "in_texMin", numVolumes, reinterpret_cast<const float(*)[3]>(this->TexMinVec.data()));
   prog->SetUniform3fv(
     "in_texMax", numVolumes, reinterpret_cast<const float(*)[3]>(this->TexMaxVec.data()));
+  prog->SetUniform3fv(
+    "in_eyePosObjs", numVolumes, reinterpret_cast<const float(*)[3]>(this->EyePosVec.data()));
 }
 
 //------------------------------------------------------------------------------
@@ -3663,26 +3706,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetCameraShaderParameters(
   prog->SetUniformMatrix("in_modelViewMatrix", modelViewMatrix);
   prog->SetUniformMatrix("in_inverseModelViewMatrix", this->InverseModelViewMat.GetPointer());
 
-  float fvalue3[3];
   if (cam->GetParallelProjection())
   {
+    float fvalue3[3];
     double dir[4];
     cam->GetDirectionOfProjection(dir);
     vtkInternal::ToFloat(dir[0], dir[1], dir[2], fvalue3);
     prog->SetUniform3fv("in_projectionDirection", 1, &fvalue3);
   }
-
-  if (!cam->GetUseOffAxisProjection())
-  {
-    vtkInternal::ToFloat(cam->GetPosition(), fvalue3, 3);
-  }
-  else
-  {
-    double eyePos[3];
-    cam->GetEyePosition(eyePos);
-    vtkInternal::ToFloat(eyePos, fvalue3, 3);
-  }
-  prog->SetUniform3fv("in_cameraPos", 1, &fvalue3);
 
   // TODO Take consideration of reduction factor
   float fvalue2[2];

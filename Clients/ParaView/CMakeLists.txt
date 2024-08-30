@@ -3,6 +3,13 @@ cmake_dependent_option(PARAVIEW_ENABLE_EMBEDDED_DOCUMENTATION
   "PARAVIEW_USE_QT" ON)
 mark_as_advanced(PARAVIEW_ENABLE_EMBEDDED_DOCUMENTATION)
 
+if (PARAVIEW_ENABLE_EMBEDDED_DOCUMENTATION AND
+    PARAVIEW_QT_MAJOR_VERSION VERSION_GREATER "5")
+  # see https://gitlab.kitware.com/paraview/paraview/-/issues/19742
+  message(WARNING "Building the documentation with Qt6 is not supported")
+  set(PARAVIEW_ENABLE_EMBEDDED_DOCUMENTATION OFF)
+endif ()
+
 set(xmls
   "${CMAKE_CURRENT_SOURCE_DIR}/ParaViewFilters.xml"
   "${CMAKE_CURRENT_SOURCE_DIR}/ParaViewSources.xml")
@@ -16,9 +23,9 @@ if (PARAVIEW_ENABLE_EMBEDDED_DOCUMENTATION)
 endif ()
 
 if (DEFINED PARAVIEW_VERSION_NICKNAME)
-  set(paraview_version "[TTK 1.2] ${PARAVIEW_VERSION_NICKNAME}")
+  set(paraview_version "${PARAVIEW_VERSION_NICKNAME}")
 else ()
-  set(paraview_version "[TTK 1.2] ${PARAVIEW_VERSION_FULL}")
+  set(paraview_version "${PARAVIEW_VERSION_FULL}")
 endif ()
 set(paraview_title "ParaView ${paraview_version}")
 if (PARAVIEW_BRANCH)
@@ -72,7 +79,7 @@ paraview_client_add(
   EXPORT            "ParaViewClient"
   APPLICATION_NAME  "ParaView"
   TITLE             "${paraview_title}"
-  ORGANIZATION      "TTK"
+  ORGANIZATION      "ParaView"
   VERSION           "${PARAVIEW_VERSION_MAJOR}.${PARAVIEW_VERSION_MINOR}.${PARAVIEW_VERSION_PATCH}"
   ${style_args}
   MAIN_WINDOW_CLASS "ParaViewMainWindow"
@@ -114,14 +121,16 @@ endif()
 
 target_compile_definitions(paraview
   PRIVATE
-    "PARAVIEW_USE_PYTHON=$<BOOL:${PARAVIEW_USE_PYTHON}>")
+    "PARAVIEW_USE_PYTHON=$<BOOL:${PARAVIEW_USE_PYTHON}>"
+    "PARAVIEW_USE_EXTERNAL_VTK=$<BOOL:${PARAVIEW_USE_EXTERNAL_VTK}>")
 if (PARAVIEW_USE_PYTHON)
   target_link_libraries(paraview
     PRIVATE
       ParaView::pvpythonmodules
       ParaView::pvincubatorpythonmodules
       ParaView::pqPython
-      ParaView::PythonInitializer)
+      ParaView::PythonInitializer
+      ParaView::PythonInterpreterPath)
 endif ()
 
 target_compile_definitions(paraview
