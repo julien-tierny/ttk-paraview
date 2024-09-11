@@ -49,12 +49,9 @@ jobs:
           $GITHUB_WORKSPACE
 
     - name: Build ParaView
-      continue-on-error: true
       run: |
         cd build
-        cmake --build . --parallel -DPARAVIEW_VERSION=5.13
-        echo -e "===\n\n\nDEBUG: displaying versioning"
-        cat build/Utilities/Versioning/vtkPVVersionQuick.h
+        cmake --build . --parallel 
 
     - name: Create ParaView package
       run: |
@@ -106,9 +103,12 @@ jobs:
           $GITHUB_WORKSPACE
 
     - name: Build ParaView
+      continue-on-error: true
       run: |
         cd build
         cmake --build . --parallel
+        echo -e "===\n\n\nDisplaying vtkPVVersionQuick.h...\n\n\n==="
+        cat Utilities/Versioning/vtkPVVersionQuick.h
 
     - name: Create ParaView package
       run: |
