@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-20.04, ubuntu-22.04]
     steps:
     - uses: actions/checkout@v4
       name: Checkout TTK-ParaView source code
@@ -112,7 +112,7 @@ jobs:
       run: |
         cd build
         echo -e "===\n\n\nDisplaying vtkPVVersionQuick.h...\n\n\n==="
-        cat Utilities/Versioning/vtkPVVersionQuick.h
+        cat Utilities/Versioning/vtkPVVersionQuick.h 2> /dev/null
         cpack -G TGZ
 
     - name: Upload compressed binaries
