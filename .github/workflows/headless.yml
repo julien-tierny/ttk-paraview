@@ -107,12 +107,12 @@ jobs:
       run: |
         cd build
         cmake --build . --parallel
-        echo -e "===\n\n\nDisplaying vtkPVVersionQuick.h...\n\n\n==="
-        cat Utilities/Versioning/vtkPVVersionQuick.h
 
     - name: Create ParaView package
       run: |
         cd build
+        echo -e "===\n\n\nDisplaying vtkPVVersionQuick.h...\n\n\n==="
+        cat Utilities/Versioning/vtkPVVersionQuick.h
         cpack -G TGZ
 
     - name: Upload compressed binaries
