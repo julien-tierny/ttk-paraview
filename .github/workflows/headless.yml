@@ -103,7 +103,6 @@ jobs:
           $GITHUB_WORKSPACE
 
     - name: Build ParaView
-      continue-on-error: true
       run: |
         cd build
         cmake --build . --parallel
@@ -111,8 +110,6 @@ jobs:
     - name: Create ParaView package
       run: |
         cd build
-        echo -e "===\n\n\nDisplaying vtkPVVersionQuick.h...\n\n\n==="
-        cat Utilities/Versioning/vtkPVVersionQuick.h 2> /dev/null
         cpack -G TGZ
 
     - name: Upload compressed binaries
