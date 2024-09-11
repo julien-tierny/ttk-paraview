@@ -1211,15 +1211,15 @@ endif ()
 #-----------------------------------------------------------------------------
 # Install TTK example data
 install(FILES ${ParaView_SOURCE_DIR}/TTK/Data/Example1.vti
-  DESTINATION share/paraview-5.13/examples/
+  DESTINATION share/paraview${paraview_version_suffix}/examples/
   COMPONENT development)
 
 install(FILES ${ParaView_SOURCE_DIR}/TTK/Data/Example2.vti
-  DESTINATION share/paraview-5.13/examples/
+  DESTINATION share/paraview${paraview_version_suffix}/examples/
   COMPONENT development)
 
 install(FILES ${ParaView_SOURCE_DIR}/TTK/Data/Example3.vti
-  DESTINATION share/paraview-5.13/examples/
+  DESTINATION share/paraview${paraview_version_suffix}/examples/
   COMPONENT development)
 
 #-----------------------------------------------------------------------------
