@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-20.04, ubuntu-22.04]
     steps:
     - uses: actions/checkout@v4
       name: Checkout TTK-ParaView source code
@@ -103,7 +103,6 @@ jobs:
           $GITHUB_WORKSPACE
 
     - name: Build ParaView
-      continue-on-error: true
       run: |
         cd build
         cmake --build . --parallel
@@ -111,8 +110,6 @@ jobs:
     - name: Create ParaView package
       run: |
         cd build
-        echo -e "===\n\n\nDisplaying vtkPVVersionQuick.h...\n\n\n==="
-        cat Utilities/Versioning/vtkPVVersionQuick.h
         cpack -G TGZ
 
     - name: Upload compressed binaries
@@ -234,14 +231,6 @@ jobs:
         tag: ${{ github.ref }}
         file: ttk-paraview-headless-ubuntu-22.04/ttk-paraview.deb
         asset_name: ttk-paraview-headless-ubuntu-22.04.deb
-
-    - name: Upload Ubuntu Noble Numbat .deb as Release Asset
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ github.ref }}
-        file: ttk-paraview-headless-ubuntu-24.04/ttk-paraview.deb
-        asset_name: ttk-paraview-headless-ubuntu-24.04.deb
 
     - name: Upload MacOS 14 (arm64) .tar.gz as Release Asset
       uses: svenstaro/upload-release-action@v2
