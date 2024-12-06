@@ -88,16 +88,16 @@ jobs:
     - name: Install macOS dependencies
       run: |
         # ParaView dependencies
-        brew reinstall python:3.12
+        brew reinstall python:
         brew install --cask xquartz
-        brew install ninja open-mpi
+        brew install ninja 
 
     - name: Create & configure ParaView build directory
       run: |
         mkdir build && cd build
         cmake \
           -DCMAKE_BUILD_TYPE=Release \
-          -DPARAVIEW_USE_MPI=ON \
+          -DPARAVIEW_USE_MPI=OFF \
           -DPARAVIEW_USE_QT=OFF \
           -GNinja \
           $GITHUB_WORKSPACE
